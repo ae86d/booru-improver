@@ -63,8 +63,8 @@
         applyZoomHook() {
             this.media.addEventListener("mousemove", e => {
                 const rect = e.target.getBoundingClientRect();
-                const x = (e.clientX - rect.left) / rect.width;
-                const y = (e.clientY - rect.top) / rect.height;
+                const x = ((e.clientX - rect.left) / rect.width) * 1.5 - 0.25;
+                const y = ((e.clientY - rect.top) / rect.height) * 1.5 - 0.25;
 
                 e.target.style.setProperty("--x", `${clamp(x * 100, 0, 100)}%`);
                 e.target.style.setProperty("--y", `${clamp(y * 100, 0, 100)}%`);
