@@ -76,7 +76,7 @@
         applyVolume() {
             if (!this._isVideo) return;
 
-            this.media.volume = 1;
+            this._getVideoPlayerElement().volume = 1;
         }
 
         _getCss() {
@@ -134,17 +134,27 @@ ${this._getCssResizeSelector()}
         _getVideoElement() {
             throw notImplementedError();
         }
+
+        _getVideoPlayerElement() {
+            return this._getVideoElement();
+        }
     }
 
     class WrapperR extends WrapperBase {
+        #player;
+
+        constructor() {
+            super();
+            this.#player = document.getElementById("gelcomVideoPlayer");
+        }
+
         applySpecialFixes() {
             if (!this._isVideo) return;
 
-            const player = document.getElementById("gelcomVideoPlayer");
             const overlay = document.getElementById("fluid_video_wrapper_gelcomVideoPlayer");
-            this.media.prepend(player);
-            player.id = "gelcomVideoPlayer-modified";
-            player.setAttribute("controls", "");
+            this.media.prepend(this.#player);
+            this.#player.id = "gelcomVideoPlayer-modified";
+            this.#player.setAttribute("controls", "");
             overlay.style.display = "none";
         }
 
@@ -162,6 +172,10 @@ ${this._getCssResizeSelector()}
 
         _getVideoElement() {
             return document.getElementById("gelcomVideoContainer");
+        }
+
+        _getVideoPlayerElement() {
+            return this.#player;
         }
 
         _tryGetOriginalImageUrl() {
