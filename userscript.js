@@ -136,7 +136,11 @@ ${this._getCssResizeSelector()}
         }
 
         _getVideoPlayerElement() {
-            return this._getVideoElement();
+            if (!this._isVideo) {
+                throw new Error("Media is not a video");
+            }
+            
+            return this.media;
         }
     }
 
@@ -254,3 +258,4 @@ body {
 
     main();
 })();
+
