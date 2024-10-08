@@ -103,7 +103,7 @@ ${mediaSelectors.join(",")} {
   image-rendering: high-quality;
 }
 
-${mediaSelectors.map(x => x + ":hover").join(",")} {
+${mediaSelectors.map(x => x + ":hover:not(:fullscreen)").join(",")} {
     object-fit: cover;
     object-position: var(--x) var(--y);
 }
