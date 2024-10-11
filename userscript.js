@@ -139,7 +139,7 @@ ${this._getCssResizeSelector()}
             if (!this._isVideo) {
                 throw new Error("Media is not a video");
             }
-            
+
             return this.media;
         }
     }
@@ -228,7 +228,7 @@ body {
 
     class WrapperG extends WrapperBase {
         _tryGetOriginalImageUrl() {
-            return document.getElementById("resize-link");
+            return document.getElementById("resize-link").href;
         }
 
         _getCssMediaSelectors() {
@@ -258,4 +258,3 @@ body {
 
     main();
 })();
-
