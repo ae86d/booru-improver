@@ -228,7 +228,7 @@ body {
 
     class WrapperG extends WrapperBase {
         _tryGetOriginalImageUrl() {
-            return document.getElementById("resize-link").href;
+            return document.getElementById("resize-link")?.href;
         }
 
         _getCssMediaSelectors() {
