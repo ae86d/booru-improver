@@ -4,6 +4,8 @@
 // @include     https://rule34.xxx/*s=view*
 // @include     https://e621.net/posts/*
 // @include     https://gelbooru.com/*s=view*
+// @include     https://realbooru.com/*s=view*
+// @include     https://booru.allthefallen.moe/posts/*
 // ==/UserScript==
 
 (() => {
@@ -22,6 +24,10 @@
                     return new WrapperE();
                 case "gelbooru.com":
                     return new WrapperG();
+                case "realbooru.com":
+                    return new WrapperRB();
+                case "booru.allthefallen.moe":
+                    return new WrapperA();
                 default:
                     throw new Error(`Unknown hostname: ${hostname}`);
             }
@@ -245,6 +251,67 @@ body {
 
         _getVideoElement() {
             return document.getElementById("gelcomVideoPlayer");
+        }
+    }
+
+    class WrapperRB extends WrapperBase {
+        _tryGetOriginalImageUrl() {
+            return null;
+        }
+
+        _getCssMediaSelectors() {
+            return ["#image", "#gelcomVideoPlayer"];
+        }
+
+        _getCssResizeSelector() {
+            return "#resize-link";
+        }
+
+        _getImageElement() {
+            return document.getElementById("image");
+        }
+
+        _getVideoElement() {
+            return document.getElementById("gelcomVideoPlayer");
+        }
+    }
+
+    class WrapperA extends WrapperBase {
+        applyOriginalImage() {
+            super.applyOriginalImage();
+
+            // Prevent image from being downsized by their JS.
+            this.media.id = "image-modified";
+        }
+
+        _tryGetOriginalImageUrl() {
+            return document.getElementById("image-resize-link")?.href;
+        }
+
+        _getCss() {
+            return super._getCss() + `
+body {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+            `;
+        }
+
+        _getCssMediaSelectors() {
+            return ["#image-modified"];
+        }
+
+        _getCssResizeSelector() {
+            return "#image-resize-notice";
+        }
+
+        _getImageElement() {
+            return document.getElementById("image");
+        }
+
+        _getVideoElement() {
+            return this._getImageElement();
         }
     }
 
