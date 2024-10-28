@@ -44,10 +44,11 @@
         constructor() {
             this.media = this._getImageElement();
             this._isVideo = false;
+            this._needsSpecialFixes = true;
 
             if (this.media === null) {
                 this._isVideo = true;
-                this.media = this.media ?? this._getVideoElement();
+                this.media = this._getVideoElement();
             }
         }
 
@@ -62,7 +63,7 @@
 
         applyCss() {
             const style = document.createElement("style");
-            style.textContent = this._getCss();
+            style.innerText = this._getCss();
             document.head.append(style);
         }
 
@@ -152,14 +153,26 @@ ${this._getCssResizeSelector()}
 
     class WrapperR extends WrapperBase {
         #player;
+        #needsSpecialFixes;
 
         constructor() {
             super();
-            this.#player = document.getElementById("gelcomVideoPlayer");
+
+            if (this._isVideo) {
+                this.#needsSpecialFixes = true;
+                this.#player = document.getElementById("gelcomVideoPlayer");
+            }
+
+            if (this.media === null) {
+                const restored = this._tryRestoreRemovedMedia();
+                this.media = restored.media;
+                this._isVideo = restored.isVideo;
+                this.#needsSpecialFixes = false;
+            }
         }
 
         applySpecialFixes() {
-            if (!this._isVideo) return;
+            if (!this.#needsSpecialFixes) return;
 
             const overlay = document.getElementById("fluid_video_wrapper_gelcomVideoPlayer");
             this.media.prepend(this.#player);
@@ -190,6 +203,34 @@ ${this._getCssResizeSelector()}
 
         _tryGetOriginalImageUrl() {
             return document.getElementById("resized_notice")?.firstChild?.href;
+        }
+
+        _tryRestoreRemovedMedia() {
+            const url = [...document.getElementsByTagName("a")]
+              .filter(x => x.innerText === "Original image")[0]?.href;
+            const isVideo = [...document.querySelectorAll("li.tag-type-metadata.tag > a:nth-child(2)")]
+              .filter(x => x.innerText === "video")[0] !== undefined;
+
+            if (!url) {
+                throw new Error("Unable to find removed media source");
+            }
+
+            let media;
+            if (isVideo) {
+                media = document.createElement("video");
+                media.id = "image";
+                media.src = url;
+                media.controls = "";
+                media.loop = "";
+            } else {
+                media = document.createElement("img");
+                media.id = "image";
+                media.src = url;
+            }
+
+            document.body.append(media);
+
+            return { media, isVideo };
         }
     }
 
@@ -235,7 +276,7 @@ body {
     class WrapperG extends WrapperBase {
         _tryGetOriginalImageUrl() {
             return [...document.getElementsByTagName("a")]
-              .filter(x => x.textContent === "Original image")[0];
+              .filter(x => x.innerText === "Original image")[0];
         }
 
         _getCssMediaSelectors() {
