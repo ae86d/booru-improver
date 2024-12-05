@@ -4,7 +4,7 @@
 // @include     https://rule34.xxx/*s=view*
 // @include     https://e621.net/posts/*
 // @include     https://gelbooru.com/*s=view*
-// @include     https://realbooru.com/*s=view*
+// @include     https://realbooru.com/*
 // @include     https://booru.allthefallen.moe/posts/*
 // ==/UserScript==
 
@@ -49,6 +49,11 @@
             if (this.media === null) {
                 this._isVideo = true;
                 this.media = this._getVideoElement();
+            }
+
+            const title = this._tryGetPageTitle();
+            if (title !== null) {
+                document.title = title;
             }
         }
 
@@ -148,6 +153,10 @@ ${this._getCssResizeSelector()}
             }
 
             return this.media;
+        }
+
+        _tryGetPageTitle() {
+            return null;
         }
     }
 
@@ -297,6 +306,37 @@ body {
     }
 
     class WrapperRB extends WrapperBase {
+        #isPost;
+
+        constructor() {
+            super();
+            this.#isPost = window.location.href.includes("s=view");
+        }
+
+        applyOriginalImage() {
+            if (this.#isPost) {
+                super.applyOriginalImage();
+            }
+        }
+
+        applyCss() {
+            if (this.#isPost) {
+                super.applyCss();
+            }
+        }
+
+        applyZoomHook() {
+            if (this.#isPost) {
+                super.applyZoomHook();
+            }
+        }
+
+        applyVolume() {
+            if (this.#isPost) {
+                super.applyVolume();
+            }
+        }
+
         _tryGetOriginalImageUrl() {
             return null;
         }
@@ -315,6 +355,25 @@ body {
 
         _getVideoElement() {
             return document.getElementById("gelcomVideoPlayer");
+        }
+
+        _tryGetPageTitle() {
+            const tags = document.getElementById("tags");
+            if (tags !== null) {
+                return `Realbooru - ${tags.innerText}`;
+            }
+
+            const url = new URLSearchParams(window.location.href);
+            if (url.has("tags")) {
+                const urlTags = url.getAll("tags");
+                if (urlTags.length === 0) {
+                    return null;
+                }
+
+                return `Realbooru / ${urlTags.join(" ")}`;
+            }
+
+            return null;
         }
     }
 
