@@ -190,6 +190,15 @@ ${this._getCssResizeSelector()}
             overlay.style.display = "none";
         }
 
+        _getCss() {
+            const css = super._getCss();
+            return `${css}
+.sidebarRight.verticalFlexWithMargins {
+  display: none;
+}
+`;
+        }
+
         _getCssMediaSelectors() {
             return ["#image", "#gelcomVideoPlayer-modified"];
         }
