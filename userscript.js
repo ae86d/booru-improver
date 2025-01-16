@@ -220,7 +220,9 @@ ${this._getCssResizeSelector()}
         }
 
         _tryGetOriginalImageUrl() {
-            return document.getElementById("resized_notice")?.firstChild?.href;
+            return [...document.getElementsByTagName("a")]
+                .filter(x => x.innerText === "Original image")[0]
+                ?.href;
         }
 
         _tryRestoreRemovedMedia() {
