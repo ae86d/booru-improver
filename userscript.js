@@ -11,6 +11,23 @@
 (() => {
     "use strict";
 
+	////////////////
+	/// Settings ///
+	////////////////
+
+	// Whether to enable zooming in by clicking on the image, which can then be scrolled in.
+	const ZOOM_HOOK_ENABLED = true;
+
+	// How many pixels to scroll at a time when the image is zoomed in.
+	const ZOOM_HOOK_PIXELS_TO_SCROLL = 120;
+
+	// How long the zoomed scroll transition/animation should take.
+	const ZOOM_HOOK_TRANSITION_MS = 200;
+
+	// Whether to reset video player volume on page load, avoiding the behavior some
+	// sites do where it's lowered by default.
+	const VOLUME_RESET_ENABLED = true;
+
     function main() {
         // If we need to wait for the page to finish loading first.
         // await new Promise(resolve => addEventListener("load", resolve));
@@ -36,8 +53,14 @@
         wrapper.applyOriginalImage();
         wrapper.applyCss();
         wrapper.applySpecialFixes();
-        wrapper.applyZoomHook();
-        wrapper.applyVolume();
+
+		if (ZOOM_HOOK_ENABLED) {
+        	wrapper.applyZoomHook();
+		}
+
+		if (VOLUME_RESET_ENABLED) {
+	        wrapper.applyVolume();
+		}
     }
 
     class WrapperBase {
@@ -74,13 +97,62 @@
 
         applyZoomHook() {
             this.media.addEventListener("mousemove", e => {
-                const rect = e.target.getBoundingClientRect();
-                const x = ((e.clientX - rect.left) / rect.width) * 1.5 - 0.25;
-                const y = ((e.clientY - rect.top) / rect.height) * 1.5 - 0.25;
-
-                e.target.style.setProperty("--x", `${clamp(x * 100, 0, 100)}%`);
-                e.target.style.setProperty("--y", `${clamp(y * 100, 0, 100)}%`);
+				// Prevent Imagus from showing a popup, we don't need it.
+				e.stopPropagation();
             });
+
+			this.media.addEventListener("wheel", e => {
+				e.preventDefault();
+
+				function parse(name) {
+					const value = e.target.style.getPropertyValue(name);
+					if (value.length === 0) {
+						return 0;
+					}
+
+					return parseFloat(value);
+				}
+
+				const x = parse("--x");
+				const y = parse("--y");
+
+
+				const lineHeight = parseFloat(getComputedStyle(e.target).lineHeight) || 16;
+
+				const px = e.deltaY * (
+					e.deltaMode === WheelEvent.DOM_DELTA_LINE
+						? lineHeight
+						: e.deltaMode === WheelEvent.DOM_DELTA_PAGE
+							? e.target.clientHeight
+							: 1
+			    );
+
+				const scale = Math.max(
+					e.target.clientWidth / e.target.naturalWidth,
+					e.target.clientHeight / e.target.naturalHeight,
+				);
+				const overflowX = e.target.naturalWidth * scale - e.target.clientWidth;
+				const overflowY = e.target.naturalHeight * scale - e.target.clientHeight;
+
+				const stepX = overflowX > 0 ? (px / overflowX) * ZOOM_HOOK_PIXELS_TO_SCROLL : 0;
+				const stepY = overflowY > 0 ? (px / overflowY) * ZOOM_HOOK_PIXELS_TO_SCROLL : 0;
+
+				e.target.style.setProperty("--x", `${clamp(x + stepX, 0, 100)}%`);
+				e.target.style.setProperty("--y", `${clamp(y + stepY, 0, 100)}%`);
+			});
+
+			this.media.addEventListener("click", () => {
+				this.media.classList.toggle("image-modified--zoom");
+
+				if (this.media.classList.contains("image-modified--zoom")) {
+					// Enable animations only after we zoom in.
+					// 10ms should be enough time for the browser to have already zoomed in the image.
+					setTimeout(() => this.media.classList.add("image-modified--can-transition"), 10);
+				} else {
+					// Immediately disable animations when not zoomed in.
+					this.media.classList.remove("image-modified--can-transition");
+				}
+			});
         }
 
         applySpecialFixes() {}
@@ -113,11 +185,16 @@ ${mediaSelectors.join(",")} {
   max-width: unset !important;
   object-fit: contain;
   image-rendering: high-quality;
+  //object-position: 0% 0%;
 }
 
-${mediaSelectors.map(x => x + ":hover:not(:fullscreen)").join(",")} {
+${mediaSelectors.map(x => x + ".image-modified--zoom:not(:fullscreen)").join(",")} {
     object-fit: cover;
-    object-position: var(--x) var(--y);
+    object-position: var(--x, 0%) var(--y, 0%);
+}
+
+.image-modified--can-transition {
+  	transition: object-position ${ZOOM_HOOK_TRANSITION_MS}ms;
 }
 
 ${this._getCssResizeSelector()}
@@ -255,12 +332,38 @@ ${this._getCssResizeSelector()}
     }
 
     class WrapperE extends WrapperBase {
+		constructor() {
+			super();
+			this._isVideo = this.media instanceof HTMLVideoElement;
+		}
+
         applyOriginalImage() {
             super.applyOriginalImage();
 
             // Prevent image from being downsized by their JS.
             this.media.id = "image-modified";
         }
+
+		applySpecialFixes() {
+			if (!this._isVideo) {
+				return;
+			}
+
+			const video = this.media;
+			video.controls = true;
+			console.log("Restored controls");
+
+			const observer = new MutationObserver(() => {
+				if (video.controls !== true) {
+					video.controls = true;
+					console.log("Restored controls");
+				}
+			});
+			observer.observe(video, {
+				attributes: true,
+				attributeFilter: ["controls"],
+			});
+		}
 
         _tryGetOriginalImageUrl() {
             return document.getElementById("image-resize-link")?.href;
@@ -272,6 +375,10 @@ body {
   position: absolute;
   left: 0;
   top: 0;
+}
+
+#image-modified {
+  pointer-events: unset !important;
 }
             `;
         }
@@ -435,5 +542,14 @@ body {
         return new Error("Not implemented");
     }
 
-    main();
+	/*await new Promise(resolve => {
+		if (document.readyState === "loading") {
+			resolve();
+			return;
+		}
+
+		window.addEventListener("load", () => void(resolve()), { once: true });
+	});*/
+
+	main();
 })();
